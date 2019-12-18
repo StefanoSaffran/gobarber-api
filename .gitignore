@@ -6,7 +6,8 @@
 .pnp.js
 
 # testing
-/coverage
+/__tests__/coverage/*
+/__tests__/database.sqlite
 
 # production
 /dist
@@ -16,7 +17,7 @@
 .env
 .env.local
 .env.development.local
-.env.test.local
+.env.test
 .env.production.local
 
 npm-debug.log*
