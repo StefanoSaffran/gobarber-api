@@ -81,7 +81,7 @@ describe('User', () => {
     expect(updatedUser.body).toHaveProperty('id');
   });
 
-  /* it("shouldn't update user password when the password doesn't match the user password", async () => {
+  it("shouldn't update user password when the password doesn't match the user password", async () => {
     const user = await factory.attrs('User', {
       password: '123456',
     });
@@ -99,6 +99,8 @@ describe('User', () => {
     const updatedUser = await request(app)
       .put('/users')
       .send({
+        name: 'Updated Name',
+        email: 'email@email.com',
         oldPassword: 'notTheSame',
         password: '123123',
         confirmPassword: '123123',
@@ -106,9 +108,37 @@ describe('User', () => {
       .set('Authorization', `bearer ${user.token}`);
 
     expect(updatedUser.status).toBe(401);
-  }); */
+  });
 
-  it("shouldn't update user email, email already in use", async () => {
+  it("shouldn't update user password when the oldPassword is not provided", async () => {
+    const user = await factory.attrs('User', {
+      password: '123456',
+    });
+
+    await request(app)
+      .post('/users')
+      .send(user);
+
+    const { body } = await request(app)
+      .post('/sessions')
+      .send(user);
+
+    user.token = body.token;
+
+    const updatedUser = await request(app)
+      .put('/users')
+      .send({
+        name: 'Updated Name',
+        email: 'email@email.com',
+        password: '123123',
+        confirmPassword: '123123',
+      })
+      .set('Authorization', `bearer ${user.token}`);
+
+    expect(updatedUser.status).toBe(401);
+  });
+
+  it("shouldn't update user email when email already in use", async () => {
     const user = await factory.attrs('User', {
       password: '123456',
     });
@@ -137,7 +167,7 @@ describe('User', () => {
     expect(updatedUser.status).toBe(400);
   });
 
-  it("shouldn't pass update user validation, because it didn't provide a confirmation password", async () => {
+  it("shouldn't update the password because it didn't provide a confirmation password", async () => {
     const user = await factory.attrs('User', {
       password: '123456',
     });

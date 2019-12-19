@@ -87,6 +87,35 @@ describe('Authentication', () => {
     expect(response.status).toBe(401);
   });
 
+  it('should not be able to access when email or password is not provided', async () => {
+    const user = await factory.create('User', {
+      password: '123456',
+    });
+
+    const response = await request(app)
+      .post('/sessions')
+      .send({
+        password: user.password,
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('should not be able to access when user does not exist', async () => {
+    const user = await factory.create('User', {
+      password: '123456',
+    });
+
+    const response = await request(app)
+      .post('/sessions')
+      .send({
+        email: 'anotheremail@email.com',
+        password: user.password,
+      });
+
+    expect(response.status).toBe(401);
+  });
+
   afterAll(async done => {
     done();
   });
