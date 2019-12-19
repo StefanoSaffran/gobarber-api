@@ -68,7 +68,7 @@ class UserController {
       return res.status(400).json({ error: 'validation fails' });
     }
 
-    const { email, oldPassword, password, confirmPassword } = req.body;
+    const { email, oldPassword, password } = req.body;
 
     const user = await User.findByPk(req.userId, {
       include: [
@@ -90,8 +90,8 @@ class UserController {
       }
     }
 
-    if (!oldPassword && (password || confirmPassword)) {
-      return res.status(401).json({ error: 'Password is required.' });
+    if (!oldPassword && password) {
+      return res.status(401).json({ error: 'OldPassword is required.' });
     }
 
     if (oldPassword && !(await user.checkPassword(oldPassword))) {
