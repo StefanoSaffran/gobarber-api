@@ -1,4 +1,3 @@
-import * as Yup from 'yup';
 import aws from 'aws-sdk';
 
 import fs from 'fs';
@@ -8,66 +7,36 @@ import { promisify } from 'util';
 import User from '../models/User';
 import File from '../models/File';
 
+import Cache from '../../lib/Cache';
+
 const s3 = new aws.S3();
 
 class UserController {
   async store(req, res) {
-    const schema = Yup.object().shape({
-      name: Yup.string().required(),
-      email: Yup.string()
-        .email()
-        .required(),
-      password: Yup.string()
-        .required()
-        .min(6),
-    });
+    const userExists = await User.findOne({ where: { email: req.body.email } });
 
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'validation fails' });
+    /**
+     * Check if User already exists
+     */
+    if (userExists) {
+      return res.status(400).json({ error: 'User already exists.' });
     }
 
-    return User.findOne({ where: { email: req.body.email } }).then(user => {
-      /**
-       * Check if User already exists
-       */
-      if (user) {
-        return res.status(400).json({ error: 'User already exists.' });
-      }
+    const { id, name, email, provider } = await User.create(req.body);
 
-      return User.create(req.body).then(createdUser =>
-        res.json({
-          id: createdUser.id,
-          name: createdUser.name,
-          email: createdUser.email,
-          provider: createdUser.provider,
-        })
-      );
+    if (provider) {
+      await Cache.invalidate('providers');
+    }
+
+    return res.json({
+      id,
+      name,
+      email,
+      provider,
     });
   }
 
   async update(req, res) {
-    /**
-     * Check if the user sent the oldPassword, if so, make the password and the
-     * confirmPassword required, if not, make them optional.
-     */
-    const schema = Yup.object().shape({
-      name: Yup.string(),
-      email: Yup.string().email(),
-      oldPassword: Yup.string().min(6),
-      password: Yup.string()
-        .min(6)
-        .when('oldPassword', (oldPassword, field) =>
-          oldPassword ? field.required() : field
-        ),
-      confirmPassword: Yup.string().when('password', (password, field) =>
-        password ? field.required().oneOf([Yup.ref('password')]) : field
-      ),
-    });
-
-    if (!(await schema.isValid(req.body))) {
-      return res.status(400).json({ error: 'validation fails' });
-    }
-
     const { email, oldPassword, password } = req.body;
 
     const user = await User.findByPk(req.userId, {
